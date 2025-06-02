@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
 
 def check_length(v:str) -> str:
     if len(v) < 2 :
@@ -12,10 +12,17 @@ def check_empty(v:str) -> str:
 
 class UserInformation(BaseModel):
 
-     e_mail : str
-     password : str
-     user_name : str
-     crew : str
-     phone_num : str
-     user_info :str
+    e_mail : str
+    password : str
+    user_name : str
+    crew : str
+    phone_num : str
+    user_info :str
 
+class Password(BaseModel): 
+    password : str
+
+class SignInData(BaseModel):
+    e_mail : str
+    password : str
+    

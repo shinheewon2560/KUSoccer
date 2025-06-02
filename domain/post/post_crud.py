@@ -1,4 +1,6 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, Header
+import os, base64, json, time, hmac, hashlib
+
 
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -32,7 +34,7 @@ def serching_post(post_num : int, db : Session):
         raise HTTPException(status_code = 404, detail = "해당 게시물을 찾을 수 없습니다.")
     return data
 
-def post_crew(request_user_id : int, request : post_schema.PostRequest, db : Session):
+def add_post(request_user_id : int, request : post_schema.PostRequest, db : Session):
     request_user_id = num_is_valid(request_user_id)
 
     new_post = Post(
@@ -52,6 +54,9 @@ def modifing_post(request_user_id : int , post_num : int, request : post_schema.
     post_num = num_is_valid(post_num)
 
     patch_db = db.query(Post).filter(Post.index == post_num).first()
+    if patch_db is None:
+        raise HTTPException(status_code = 404, detail = "해당 게시물을 찾을 수 없습니다.")
+    
     if patch_db.post_user_id != request_user_id:
         raise HTTPException(status_code = 401, detail = "수정권한은 작성자에게만 있습니다.")
 
@@ -68,6 +73,10 @@ def delete_post(request_user_id : int, post_num : int, db : Session):
     request_user_id = num_is_valid(request_user_id)
 
     data = db.query(Post).filter(Post.index == post_num).first()
+
+    if data is None:
+        raise HTTPException(status_code = 404, detail = "해당 게시물을 찾을 수 없습니다.")
+    
     if data.post_user_id != request_user_id:
         raise HTTPException(status_code = 401, detail = "게시물은 작성자와 운영자 외에 삭제 불가능합니다.")
     
