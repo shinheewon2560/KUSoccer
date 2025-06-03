@@ -14,25 +14,25 @@ class UserInformation(BaseModel):
     e_mail : str
     password : str
     user_name : str
-    crew : str
     phone_num : str
     user_info :str
 
 class Password(BaseModel): 
     password : str
 
-class SignInData(BaseModel):
+class LogInData(BaseModel):
     e_mail : str
     password : str
     
 class UserProfile(BaseModel):
     e_mail : str
     user_name : str
-    crew : str
     phone_num : str
     user_info :str
-
     create_on : datetime
 
     class config:
         orm_mode = True
+
+class UserProfileIncludeCrew(UserProfile):
+    crew : int

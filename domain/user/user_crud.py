@@ -99,7 +99,7 @@ def check_token_and_return_id(token : str = Depends(get_jwt)) -> int:
     router function
 """
 
-def crave_on_DB(request : user_schema.UserInformation, db : Session):
+def sign_up_in_db(request : user_schema.UserInformation, db : Session):
     data_dic = check_it_valid(request)
 
     salt  = ''.join(random.choices(string.ascii_letters + string.digits, k=5))
@@ -112,7 +112,6 @@ def crave_on_DB(request : user_schema.UserInformation, db : Session):
         hash = hashing(request.password + salt),
         salt = salt,
         user_name = data_dic["user_name"],
-        crew = data_dic["crew"],
         phone_num = data_dic["phone_num"],
         user_info = data_dic["user_info"],
         
@@ -124,8 +123,7 @@ def crave_on_DB(request : user_schema.UserInformation, db : Session):
 
     return {"message":"성공적으로 등록되었습니다."}
 
-
-def sign_in(email : str , password : str, db : Session):
+def authenticate_user(email : str , password : str, db : Session):
     data = db.query(User).filter(User.e_mail == email).first()
 
     if data is None:
@@ -156,7 +154,7 @@ def sign_in(email : str , password : str, db : Session):
     #jwt 발금 완료
     #이걸 프론트에서 받아서 로컬에 저장한 후 게시물 작성시 이 jwt를 같이 본문에 넣어서 발송하도록 작용
 
-def recarving_info(request : user_schema.UserInformation, user_id : int, db : Session):
+def modify_info_in_db(request : user_schema.UserInformation, user_id : int, db : Session):
     data = db.query(User).filter(User.id == user_id).first()
 
     new_salt  = ''.join(random.choices(string.ascii_letters + string.digits, k=5))
@@ -165,40 +163,57 @@ def recarving_info(request : user_schema.UserInformation, user_id : int, db : Se
     data.hash = hashing(request.password + new_salt)
     data.salt = new_salt
     data.user_name = request.user_name
-    data.crew = request.crew
     data.phone_num = request.phone_num
     data.user_info = request.user_info
 
     db.commit()
     return {"message" : "성공적으로 수정되었습니다."}
 
-def return_user_profile(request_user_id : int , id : int , db : Session) -> user_schema.UserProfile:
+def print_user_profile_from_db(request_user_id : int , id : int , db : Session):
     check = db.query(User).filter(User.id == request_user_id).first()
     if check is None:
         raise HTTPException(status_code = 403, detail = "잘못된 접근입니다")
     data = db.query(User).filter(User.id == id).first()
 
-    _result = user_schema.UserProfile(
-    e_mail = data.e_mail,
-    user_name = data.user_name,
-    user_info = data.user_info,
-    crew = data.crew,
-    phone_num = data.phone_num,
-    create_on = data.create_on
-    )
+    if data.crew is None:
+        _result = user_schema.UserProfile(
+        e_mail = data.e_mail,
+        user_name = data.user_name,
+        user_info = data.user_info,
+        phone_num = data.phone_num,
+        create_on = data.create_on
+        )
+    else: 
+        _result = user_schema.UserProfileIncludeCrew(
+        e_mail = data.e_mail,
+        user_name = data.user_name,
+        user_info = data.user_info,
+        phone_num = data.phone_num,
+        crew = data.crew,
+        create_on = data.create_on
+        )
     return _result
 
-def return_my_profile(request_user_id : int, db : Session) -> user_schema.UserProfile:
+def print_my_profile_from_db(request_user_id : int, db : Session):
     data = db.query(User).filter(User.id == request_user_id).first()
     if data is None:
         raise HTTPException(status_code = 403, detail = "잘못된 접근입니다")
 
-    _result = user_schema.UserProfile(
-    e_mail = data.e_mail,
-    user_name = data.user_name,
-    user_info = data.user_info,
-    crew = data.crew,
-    phone_num = data.phone_num,
-    create_on = data.create_on
-    )
+    if data.crew is None:
+        _result = user_schema.UserProfile(
+        e_mail = data.e_mail,
+        user_name = data.user_name,
+        user_info = data.user_info,
+        phone_num = data.phone_num,
+        create_on = data.create_on
+        )
+    else: 
+        _result = user_schema.UserProfileIncludeCrew(
+        e_mail = data.e_mail,
+        user_name = data.user_name,
+        user_info = data.user_info,
+        phone_num = data.phone_num,
+        crew = data.crew,
+        create_on = data.create_on
+        )
     return _result

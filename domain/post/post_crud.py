@@ -14,16 +14,18 @@ def num_is_valid(num : int):
         raise HTTPException(status_code = 400, detail = "잘못된 접근")
     return num
 
+"""
+    router function
+"""
 
-##여기서부터 데이터 처리 함수 시작
-def show_post(db : Session):
+def show_post_list_from_db(db : Session):
     post_list = db.query(Post).order_by(Post.index.asc()).all()
     #빈 리스트가 반환된다면 아무것도 없다는 것을 의미
     if post_list == []:
         return {"message": "아직 아무 게시물도 없습니다."}
     return post_list
 
-def serching_post(post_num : int, db : Session):
+def serching_post_id_from_db(post_num : int, db : Session):
     post_num = num_is_valid(post_num)
     
     data = db.query(Post).filter(Post.index == post_num).first()
@@ -32,7 +34,7 @@ def serching_post(post_num : int, db : Session):
         raise HTTPException(status_code = 404, detail = "해당 게시물을 찾을 수 없습니다.")
     return data
 
-def add_post(request_user_id : int, request : post_schema.PostRequest, db : Session):
+def add_post_on_db(request_user_id : int, request : post_schema.PostRequest, db : Session):
     request_user_id = num_is_valid(request_user_id)
 
     new_post = Post(
@@ -47,7 +49,7 @@ def add_post(request_user_id : int, request : post_schema.PostRequest, db : Sess
 
 #forntend에서 수정버튼을 누르면 원래 있었던 data를 보여줌
 #그리고 나서 data를 수정하는데 안 바꾸면 그냥 원래 있던 애들 그대로를 집어넣음
-def modifing_post(request_user_id : int , post_num : int, request : post_schema.ModifyRequest, db : Session):
+def modifing_post_in_db(request_user_id : int , post_num : int, request : post_schema.ModifyRequest, db : Session):
     request_user_id = num_is_valid(request_user_id)
     post_num = num_is_valid(post_num)
 
@@ -67,7 +69,7 @@ def modifing_post(request_user_id : int , post_num : int, request : post_schema.
     db.commit()
     return {"message":"성공적으로 수정되었습니다."}
 
-def delete_post(request_user_id : int, post_num : int, db : Session):
+def delete_post_on_db(request_user_id : int, post_num : int, db : Session):
     request_user_id = num_is_valid(request_user_id)
 
     data = db.query(Post).filter(Post.index == post_num).first()
