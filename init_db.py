@@ -10,7 +10,7 @@ Base.metadata.create_all(bind=engine)
 db = SessionLocal()
 
 user = User(user_name = "신희원", hash = "1e8f829e49a1974b9ae18b2c6119d34f90067f25659ffbb0268d83b085a312ca", salt = "", user_info = "제가 이 프로그램 재작자입니다,\n히힣,,,,,,저 좀 멋지죠?ㅎ", e_mail = "shinheewon@korea.ac.kr", 
-            crew = "Developer", phone_num = "010-2560-1798", create_on = datetime.now())
+     phone_num = "010-2560-1798", create_on = datetime.now())
 post = Post(title = "test", content = "networking ok", when = "now", where = "anam", create_on = datetime.now(),post_user_id = 1)
 operator = Operator(name = "신희원",description = "프로젝트 창시자\n프로젝트 PL",create_on = None)
 

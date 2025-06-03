@@ -143,7 +143,15 @@ def sign_in(email : str , password : str, db : Session):
 
     token = make_JWT(Payload, secret)
 
-    return {"message" : "로그인에 성공했습니다.", "token" : f"{token}"}
+    _result = {
+        "message" : "로그인에 성공했습니다.", 
+        "token" : f"{token}",
+    }
+
+    if data.crew is None:
+        _result["alarm"] = "crew is empty"
+    
+    return _result
 
     #jwt 발금 완료
     #이걸 프론트에서 받아서 로컬에 저장한 후 게시물 작성시 이 jwt를 같이 본문에 넣어서 발송하도록 작용

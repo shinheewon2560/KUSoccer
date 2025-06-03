@@ -14,7 +14,7 @@ class User(Base):
     salt = Column(String, nullable = False)
 
     user_name = Column(String, nullable = False)
-    crew = Column(String, nullable = False)
+    crew = Column(String, ForeignKey('crew.index'))
     phone_num = Column(String)
     user_info = Column(String)
 
@@ -61,3 +61,15 @@ class DeletedPost(Base):
     post_user_id = Column(Integer, nullable = False)
 
     deleted_on = Column(DateTime, nullable = False)
+
+#팀 정보
+class Crew(Base):
+    __tablename__ = "crew"
+
+    index = Column(Integer, primary_key = True, index = True)
+
+    crew_name = Column(String, nullable = False)
+    greetings = Column(String)
+    reader_id = Column(Integer, ForeignKey('user.id'),nullable = False)
+
+    create_on = Column(DateTime)
