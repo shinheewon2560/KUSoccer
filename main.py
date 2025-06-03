@@ -8,5 +8,5 @@ app = FastAPI()
 def print_hello():
     return "hello"
 
-app.include_router(post_router.router)
 app.include_router(user_router.router)
+app.include_router(post_router.router)

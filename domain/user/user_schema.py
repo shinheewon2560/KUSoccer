@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-
+from datetime import datetime
 def check_length(v:str) -> str:
     if len(v) < 2 :
             raise ValueError("제목은 한 글자 이상이여야 합니다.")
@@ -11,7 +11,6 @@ def check_empty(v:str) -> str:
     return v
 
 class UserInformation(BaseModel):
-
     e_mail : str
     password : str
     user_name : str
@@ -26,3 +25,14 @@ class SignInData(BaseModel):
     e_mail : str
     password : str
     
+class UserProfile(BaseModel):
+    e_mail : str
+    user_name : str
+    crew : str
+    phone_num : str
+    user_info :str
+
+    create_on : datetime
+
+    class config:
+        orm_mode = True
