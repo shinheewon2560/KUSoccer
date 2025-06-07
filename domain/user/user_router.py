@@ -41,7 +41,7 @@ def print_my_profile(response: Response, request_user_id : int = Depends(user_cr
     response.status_code = status.HTTP_200_OK
     return _result
 
-@router.put("/Profile")
+@router.put("/MyProfile")
 def modify_info(response : Response, request : user_schema.UserUpdate, request_user_id : int = Depends(user_crud.check_token_and_return_id), db : Session = Depends(get_DB)):
     _result = user_crud.modify_info_in_db(request, request_user_id, db)
     response.status_code = status.HTTP_200_OK

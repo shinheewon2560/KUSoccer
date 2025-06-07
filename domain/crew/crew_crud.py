@@ -49,10 +49,6 @@ def create_crew_in_db(request : crew_schema.CreateCrewRequest, request_user_id :
     )
 
     db.add(new_crew_data)
-    #DB임시반영 부분
-    db.flush()
-
-    new_crew_data.members.append(crew_leader_row)
     db.commit()
 
     return {"message" : "성공적으로 등록 되었습니다."}
@@ -68,11 +64,13 @@ def get_info_in_db(id : int, db : Session):
 
     return _return
 
-
-def add_member_in_db(user_email : str, id : int, db : Session):
-    crew_row = db.query(Crew).filter(Crew.leader_id == id).first()
+def add_member_in_db(crew_id : int, user_email : str, request_user_id : int, db : Session):
+    crew_row = db.query(Crew).filter(Crew.id == crew_id).first()
     if crew_row is None:
-        raise HTTPException(status_code = 403, detail = "팀원 추가는 리더만 가능합니다.")
+        raise HTTPException(status_code = 404, detail = "팀을 찾을 수 없습니다.")
+    
+    if crew_row.leader_id != request_user_id:
+        raise HTTPException(status_code = 403, detail = "팀원 추가 권한은 리더에게만 있습니다.")
     
     user_row = db.query(User).filter(User.e_mail == user_email).first()
     if user_row is None:
@@ -87,16 +85,44 @@ def add_member_in_db(user_email : str, id : int, db : Session):
     return {"message" : f"{user_row.user_name}님을 성공적으로 등록하였습니다."}
 
 
-def delete_member_in_db(user_email : str, id : int, db : Session):
-    crew_row = db.query(Crew).filter(Crew.leader_id == id).first()
+def delete_member_by_leader_in_db(crew_id : int, user_email : str, request_user_id : int, db : Session):
+    crew_row = db.query(Crew).filter(Crew.id == crew_id).first()
     if crew_row is None:
+        raise HTTPException(status_code = 404, detail = "팀을 찾을 수 없습니다.")
+    
+    if crew_row.leader_id != request_user_id:
         raise HTTPException(status_code = 403, detail = "팀원 삭제는 리더만 가능합니다.")
     
     for user in crew_row.members:
         if user.e_mail == user_email:
+            #왜 이런식으로 되는지 확인
+            #-> 아마 list형으로 했기에 가능(?)
             crew_row.members.remove(user)
             db.commit()
             return {"message": "성공적으로 삭제했습니다."}
         
     raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
     
+def delete_member_by_self_in_db(crew_id : int, request_user_id : int, db : Session):
+    crew_row = db.query(Crew).filter(Crew.id == crew_id).first()
+    if crew_row is None:
+        raise HTTPException(status_code = 404, detail = "찾을 수 없습니다.")
+    
+    for user in crew_row.members:
+        if user.id == request_user_id:
+            crew_row.members.remove(user)
+            db.commit()
+            return {"message" : "탈퇴가 완료되었습니다."}
+        
+    return {"message" : "본인은 팀의 멤버가 아닙니다."}
+
+
+def delete_crew_in_db(crew_id : int, request_user_id : int, db : Session):
+    crew_row = db.query(Crew).filter(Crew.id == crew_id).first()
+    if crew_row is None:
+        raise HTTPException(status_code = 404, detail = "찾을 수 없습니다.")
+    if crew_row.leader_id != request_user_id:
+        raise HTTPException(status_code = 403, detail = "팀 삭제는 리더만 가능합니다.")
+    db.delete(crew_row)
+    db.commit()
+    return {"message" : "성공적으로 삭제했습니다."}

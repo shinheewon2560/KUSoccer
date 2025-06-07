@@ -1,6 +1,9 @@
 from pydantic import BaseModel, Field
 from typing import List
 
+"""
+    Unit schema
+"""
 
 class UserSummary(BaseModel):
     id : int
@@ -28,7 +31,9 @@ class MatchSummary(BaseModel):
     class Config:
         from_attributes = True
 
-
+"""
+    Request schema
+"""
 class CreateCrewRequest(BaseModel):
     crew_name : str
     description : str
@@ -37,6 +42,7 @@ class CreateCrewRequest(BaseModel):
 class UserEmail(BaseModel):
     e_mail : str
 
+    
 """
     Response schema
 """

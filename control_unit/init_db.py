@@ -1,8 +1,12 @@
 # init_db.py
 #데이터 베이스에 조그마한 수정이 있어도 다시 생성해야함
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from database import Base, engine, SessionLocal
 from models import Post,User,Operator
 from datetime import datetime
+
 
 # 테이블 생성
 Base.metadata.create_all(bind=engine)

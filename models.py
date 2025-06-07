@@ -6,8 +6,8 @@ from database import Base
 user_crew_table = Table(
     "user_crew",
     Base.metadata,
-    Column("user_id", Integer, ForeignKey("user.id"),primary_key = True),
-    Column("crew_id", Integer, ForeignKey("crew.id"), primary_key = True)
+    Column("user_id", Integer, ForeignKey("user.id",ondelete="CASCADE"),primary_key = True),
+    Column("crew_id", Integer, ForeignKey("crew.id",ondelete="CASCADE"), primary_key = True)
 )
 
 #사용자 정보 담기
@@ -29,7 +29,7 @@ class User(Base):
     #중강테이블을 이용해 crew와 연결함을 명시
     #역참조가 가능하도록 해서 특정 user row를 참조하고 있는 모든 crew row를 참조할 수 있게 만듬 (중간table로 구현)
     #back_populates는 자기를 참조하는 column이 아니라 relationship을 지정해 줘야함
-    joined_crews = relationship("Crew", secondary = user_crew_table, back_populates = "members")
+    joined_crews = relationship("Crew", secondary = user_crew_table, back_populates = "members",passive_deletes=True)
 
     leading_crews = relationship("Crew", back_populates = "leader")
 
@@ -97,7 +97,7 @@ class Crew(Base):
 
     #crew <-> user 연결 (쌍방향연결 / N:N)
     #중간 테이블을 이용해서 연결(새로운 테이블 생성)
-    members = relationship("User", secondary = user_crew_table, back_populates = "joined_crews")
+    members = relationship("User", secondary = user_crew_table, back_populates = "joined_crews", passive_deletes=True)
 
     #crew <- match 연결 (단방향 연결 / 1:N  2개)
     #
@@ -111,11 +111,11 @@ class Match(Base):
 
     id = Column(Integer, primary_key = True, index = True)
 
-    request_crew_id = Column(Integer, ForeignKey("crew.id"), nullable = False)
-    opponent_crew_id = Column(Integer,ForeignKey("crew.id"), nullable = False)
+    request_crew_id = Column(Integer, ForeignKey("crew.id",ondelete="CASCADE"), nullable = False)
+    opponent_crew_id = Column(Integer,ForeignKey("crew.id",ondelete="CASCADE"), nullable = False)
 
     when = Column(String)
     where = Column(String)
 
-    request_crew = relationship("Crew",foreign_keys = [request_crew_id], back_populates = "request_match")
-    opponent_crew =relationship("Crew",foreign_keys = [opponent_crew_id], back_populates = "opponent_match")
+    request_crew = relationship("Crew",foreign_keys = [request_crew_id], back_populates = "request_match",passive_deletes=True)
+    opponent_crew =relationship("Crew",foreign_keys = [opponent_crew_id], back_populates = "opponent_match",passive_deletes=True)
