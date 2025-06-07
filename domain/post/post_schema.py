@@ -22,7 +22,6 @@ def check_empty(v:str) -> str:
 class FormalRequest(BaseModel):
     title : str
     content : str
-
     when : str
     where : str
 
@@ -44,3 +43,6 @@ class PostRequest(FormalRequest):
 class ModifyRequest(FormalRequest):
     pass
     
+"""
+    Response schema
+"""

@@ -13,7 +13,7 @@ router = APIRouter(
     prefix = "/KU/Crew"
 )
 
-@router.post("/")
+@router.post("/NewCrew")
 def creat_crew(response : Response, request : crew_schema.CreateCrewRequest ,request_user_id : int = Depends(check_token_and_return_id), db : Session = Depends(get_DB)):
     _result = crew_crud.create_crew_in_db(request, request_user_id, db)
     response.status_code = status.HTTP_201_CREATED
@@ -30,13 +30,13 @@ def get_info(response : Response, crew_id : int, db : Session = Depends(get_DB))
 """
 
 @router.post("/Member")
-def add_member(response : Response, request : crew_schema.UserName, request_user_id : int = Depends(check_token_and_return_id), db : Session = Depends(get_DB)):
-    _result = crew_crud.add_member_in_db(request.user_name,request_user_id, db)
+def add_member(response : Response, request : crew_schema.UserEmail, request_user_id : int = Depends(check_token_and_return_id), db : Session = Depends(get_DB)):
+    _result = crew_crud.add_member_in_db(request.e_mail,request_user_id, db)
     response.status_code = status.HTTP_200_OK
     return _result
 
 @router.delete("/Member")
-def delete_member(response : Response, request : crew_schema.UserName , request_user_id : int = Depends(check_token_and_return_id), db : Session = Depends(get_DB)):
-    _result = crew_crud.delete_member_in_db(request.user_name, request_user_id, db)
+def delete_member(response : Response, request : crew_schema.UserEmail , request_user_id : int = Depends(check_token_and_return_id), db : Session = Depends(get_DB)):
+    _result = crew_crud.delete_member_in_db(request.e_mail, request_user_id, db)
     response.status_code = status.HTTP_200_OK
     return _result

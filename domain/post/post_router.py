@@ -10,16 +10,16 @@ router = APIRouter(
 )
 
 #개시물 리스트 출력
-@router.get("/List")
-def show_post_list(response : Response, db : Session = Depends(get_DB)):
-    _result = post_crud.show_post_list_from_db(db)
+@router.get("/List/")
+def get_post_list(response : Response, page_num : int, db : Session = Depends(get_DB)):
+    _result = post_crud.get_post_list_from_db(page_num, db)
     response.status_code = status.HTTP_202_ACCEPTED
     return _result
 
 #개시물 객체 출력
-@router.get("/List/{post_num}")
-def serching_post_id(post_num : int, response : Response, db : Session = Depends(get_DB)):
-    _result = post_crud.serching_post_id_from_db(post_num,db)
+@router.get("/")
+def get_post_by_id(post_num : int, response : Response, db : Session = Depends(get_DB)):
+    _result = post_crud.get_post_by_id_from_db(post_num,db)
     response.status_code = status.HTTP_200_OK
     return _result
 

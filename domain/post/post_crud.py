@@ -18,21 +18,32 @@ def num_is_valid(num : int):
     router function
 """
 
-def show_post_list_from_db(db : Session):
-    post_list = db.query(Post).order_by(Post.index.asc()).all()
-    #빈 리스트가 반환된다면 아무것도 없다는 것을 의미
-    if post_list == []:
-        return {"message": "아직 아무 게시물도 없습니다."}
+def get_post_list_from_db(page_num : int, db : Session):
+    #pagination을 구현하기 위함
+    #모든 값을 불러오지 않고 표시할 page만 가져오는 것
+    number_of_post = 10
+    skip = (page_num - 1) * number_of_post
+    
+    post_list = db.query(Post).order_by(Post.index.asc()).offset(skip).limit(number_of_post).all()
     return post_list
 
-def serching_post_id_from_db(post_num : int, db : Session):
+def get_post_by_id_from_db(post_num : int, db : Session):
     post_num = num_is_valid(post_num)
     
     data = db.query(Post).filter(Post.index == post_num).first()
 
     if data is None:
         raise HTTPException(status_code = 404, detail = "해당 게시물을 찾을 수 없습니다.")
-    return data
+    
+    _result = {
+        "title" : data.title,
+        "when" : data.when,
+        "where" : data.where,
+        "content" : data.content,
+        "post_user_name" : data.post_user.user_name
+    }
+
+    return _result
 
 def add_post_on_db(request_user_id : int, request : post_schema.PostRequest, db : Session):
     request_user_id = num_is_valid(request_user_id)

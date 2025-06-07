@@ -62,6 +62,8 @@ def get_jwt(authorization : str = Header(...)) -> str:
     return token
 
 def check_JWT_valid(token : str) -> dict:
+    if not token or token.lower() == "none":
+        raise HTTPException(status_code = 400, detail = "잘못된 접근입니다.")
     data = token.split(".")
 
     secret = os.getenv("JWT_SECRET")
@@ -99,7 +101,7 @@ def check_token_and_return_id(token : str = Depends(get_jwt)) -> int:
     router function
 """
 
-def sign_up_in_db(request : user_schema.UserInformation, db : Session):
+def sign_up_in_db(request : user_schema.UserCreate, db : Session):
     data_dic = check_it_valid(request)
 
     salt  = ''.join(random.choices(string.ascii_letters + string.digits, k=5))
@@ -123,12 +125,12 @@ def sign_up_in_db(request : user_schema.UserInformation, db : Session):
 
     return {"message":"성공적으로 등록되었습니다."}
 
-def authenticate_user(email : str , password : str, db : Session):
-    data = db.query(User).filter(User.e_mail == email).first()
+def authenticate_user(request : user_schema.LogInInput, db : Session):
+    data = db.query(User).filter(User.e_mail == request.e_mail).first()
 
     if data is None:
         raise HTTPException(status_code = 403, detail = "사용자가 존재하지 않습니다.")
-    if hashing(password + data.salt) != data.hash:
+    if hashing(request.password + data.salt) != data.hash:
         raise HTTPException(status_code = 403, detail = "비밀번호가 다릅니다.")
 
     Payload = {
@@ -136,9 +138,8 @@ def authenticate_user(email : str , password : str, db : Session):
         "user_name" : "{}".format(data.user_name),
         "exp" : int(time.time()) + exp #3시간 뒤 만료됨
     }
-
+    #.env(환경설정 파일)안에 있는 password로 jwt에서 secret을 생성
     secret = os.getenv("JWT_SECRET")
-
     token = make_JWT(Payload, secret)
 
     _result = {
@@ -146,19 +147,22 @@ def authenticate_user(email : str , password : str, db : Session):
         "token" : f"{token}",
     }
 
-    if data.crew is None:
+    if data.joined_crews is None:
         _result["alarm"] = "crew is empty"
     
     return _result
-
     #jwt 발금 완료
-    #이걸 프론트에서 받아서 로컬에 저장한 후 게시물 작성시 이 jwt를 같이 본문에 넣어서 발송하도록 작용
+    #이걸 프론트에서 받아서 로컬에 저장한 후 게시물 작성시 이 jwt을 해더로 발송하도록 요청
 
-def modify_info_in_db(request : user_schema.UserInformation, user_id : int, db : Session):
+def modify_info_in_db(request : user_schema.UserUpdate, user_id : int, db : Session):
     data = db.query(User).filter(User.id == user_id).first()
 
     new_salt  = ''.join(random.choices(string.ascii_letters + string.digits, k=5))
+    existing = db.query(User).filter(User.e_mail == request.e_mail).first()
 
+    if existing and existing.id != user_id:
+        raise HTTPException(status_code = 409, detail = "이미 등록된 이메일입니다.")
+    
     data.e_mail = request.e_mail
     data.hash = hashing(request.password + new_salt)
     data.salt = new_salt
@@ -169,51 +173,19 @@ def modify_info_in_db(request : user_schema.UserInformation, user_id : int, db :
     db.commit()
     return {"message" : "성공적으로 수정되었습니다."}
 
-def print_user_profile_from_db(request_user_id : int , id : int , db : Session):
+def get_user_profile_from_db(request_user_id : int , id : int , db : Session):
     check = db.query(User).filter(User.id == request_user_id).first()
     if check is None:
         raise HTTPException(status_code = 403, detail = "잘못된 접근입니다")
     data = db.query(User).filter(User.id == id).first()
+    if data is None:
+        raise HTTPException(status_code = 404, detail = "해당 유저는 존재하지 않습니다.")
 
-    if data.crew is None:
-        _result = user_schema.UserProfile(
-        e_mail = data.e_mail,
-        user_name = data.user_name,
-        user_info = data.user_info,
-        phone_num = data.phone_num,
-        create_on = data.create_on
-        )
-    else: 
-        _result = user_schema.UserProfileIncludeCrew(
-        e_mail = data.e_mail,
-        user_name = data.user_name,
-        user_info = data.user_info,
-        phone_num = data.phone_num,
-        crew = data.crew,
-        create_on = data.create_on
-        )
-    return _result
+    return user_schema.GetUserInfo.from_orm(data)
 
-def print_my_profile_from_db(request_user_id : int, db : Session):
+def get_my_profile_from_db(request_user_id : int, db : Session):
     data = db.query(User).filter(User.id == request_user_id).first()
     if data is None:
         raise HTTPException(status_code = 403, detail = "잘못된 접근입니다")
 
-    if data.crew is None:
-        _result = user_schema.UserProfile(
-        e_mail = data.e_mail,
-        user_name = data.user_name,
-        user_info = data.user_info,
-        phone_num = data.phone_num,
-        create_on = data.create_on
-        )
-    else: 
-        _result = user_schema.UserProfileIncludeCrew(
-        e_mail = data.e_mail,
-        user_name = data.user_name,
-        user_info = data.user_info,
-        phone_num = data.phone_num,
-        crew = data.crew,
-        create_on = data.create_on
-        )
-    return _result
+    return user_schema.GetUserInfo.from_orm(data)
