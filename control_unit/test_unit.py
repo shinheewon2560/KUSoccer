@@ -105,33 +105,72 @@ for curl in curl_list_no_token:
             print("[경고] JSON 파싱 실패:", result)
 
 
-curl_list_need_token = [
-###User
+a = [
 '''#비밀번호 확인 실패\n
-    curl -X 'GET' \\
-    'http://127.0.0.1:8000/KU/User/Verify-password' \\
+    curl -X 'POST' \\
+    'http://127.0.0.1:8000/KU/User/Reauthorization' \\
     -H 'accept: application/json' \\
     -H 'Content-Type: application/json' \\
     -d '{
     "password" : "12@3"
     }' ''',
 '''#비밀번호 확인 성공\n
-    curl -X 'GET' \\
-    'http://127.0.0.1:8000/KU/User/Verify-password' \\
+    curl -X 'POST' \\
+    'http://127.0.0.1:8000/KU/User/Reauthorization' \\
     -H 'accept: application/json' \\
     -H 'Content-Type: application/json' \\
     -d '{
     "password" : "123"
-    }' ''',
+    }' '''
+]
+
+b = []
+
+for curl_cmd in a:
+    auth_line = f"-H 'Authorization: Bearer {user_one_token}' \\"
+
+    if "-d '" in curl_cmd:
+        parts = curl_cmd.split("-d '", 1)
+        before_d = parts[0].rstrip()
+        after_d = "-d '" + parts[1]
+        if not before_d.strip().endswith('\\'):
+            before_d += " \\"
+        modified_cmd = before_d + "\n" + auth_line + "\n" + after_d
+    else:
+        lines = curl_cmd.strip().split('\n')
+        for i, line in enumerate(lines):
+            if "-H 'accept: application/json'" in line:
+                lines.insert(i + 1, auth_line)
+                break
+        modified_cmd = '\n'.join(lines)
+
+    b.append(modified_cmd)
+
+user_one_token = ""
+
+for curl in b:
+    result = run_curl(curl)
+    if result:
+        try:
+            token = json.loads(result).get("token")
+            if token:
+                user_one_token = token
+        except json.JSONDecodeError:
+            print("[경고] JSON 파싱 실패:", result)
+
+print("\n\n[로그인 기능 확인]\n\n")
+
+curl_list_need_token = [
+###User
 '''#내 프로필 보기\n
     curl -X 'GET' \\
-    'http://127.0.0.1:8000/KU/User/MyProfile' \\
+    'http://127.0.0.1:8000/KU/User/Me' \\
     -H 'accept: application/json' \\
     -H 'Content-Type: application/json' \\
     ''',
 '''#내 프로필 변경\n
     curl -X 'PUT' \\
-    'http://127.0.0.1:8000/KU/User/MyProfile' \\
+    'http://127.0.0.1:8000/KU/User/Me' \\
     -H 'accept: application/json' \\
     -H 'Content-Type: application/json' \\
     -d '{
@@ -144,13 +183,13 @@ curl_list_need_token = [
 }' ''',
 '''#다른 유저 프로필 검색 실패(없는 유저)\n
     curl -X 'GET' \\
-    'http://127.0.0.1:8000/KU/User/Profile?user_id=222' \\
+    'http://127.0.0.1:8000/KU/User/?user_id=222' \\
     -H 'accept: application/json' \\
     -H 'Content-Type: application/json' \\
     ''',
 '''#다른 유저 검색 성공 \n
     curl -X 'GET' \\
-    'http://127.0.0.1:8000/KU/User/Profile?user_id=1' \\
+    'http://127.0.0.1:8000/KU/User/?user_id=1' \\
     -H 'accept: application/json' \\
     -H 'Content-Type: application/json' \\
     ''',
@@ -166,7 +205,7 @@ curl_list_need_token = [
     }' ''',
 '''#내 프로필 보기 (crew변화 보기)\n
     curl -X 'GET' \\
-    'http://127.0.0.1:8000/KU/User/MyProfile' \\
+    'http://127.0.0.1:8000/KU/User/Me' \\
     -H 'accept: application/json' \\
     -H 'Content-Type: application/json' \\
     ''',
@@ -201,7 +240,7 @@ curl_list_need_token = [
 }' ''',
 '''#유저 정보 변경 확인\n
     curl -X 'GET' \\
-    'http://127.0.0.1:8000/KU/User/Profile?user_id=1' \\
+    'http://127.0.0.1:8000/KU/User/?user_id=1' \\
     -H 'accept: application/json' \\
     -H 'Content-Type: application/json' \\
     ''',
@@ -384,6 +423,54 @@ for curl in curl_list_no_token_for_permission_check:
         except json.JSONDecodeError:
             print("[경고] JSON 파싱 실패:", result)
 
+aa = [
+    '''#비밀번호 확인 성공\n
+    curl -X 'POST' \\
+    'http://127.0.0.1:8000/KU/User/Reauthorization' \\
+    -H 'accept: application/json' \\
+    -H 'Content-Type: application/json' \\
+    -d '{
+    "password" : "123"
+    }' '''
+]
+
+
+bb = []
+
+for curl_cmd in aa:
+    auth_line = f"-H 'Authorization: Bearer {user_one_token_for_permission_check}' \\"
+
+    if "-d '" in curl_cmd:
+        parts = curl_cmd.split("-d '", 1)
+        before_d = parts[0].rstrip()
+        after_d = "-d '" + parts[1]
+        if not before_d.strip().endswith('\\'):
+            before_d += " \\"
+        modified_cmd = before_d + "\n" + auth_line + "\n" + after_d
+    else:
+        lines = curl_cmd.strip().split('\n')
+        for i, line in enumerate(lines):
+            if "-H 'accept: application/json'" in line:
+                lines.insert(i + 1, auth_line)
+                break
+        modified_cmd = '\n'.join(lines)
+
+    bb.append(modified_cmd)
+
+
+user_one_token_for_permission_check = ""
+
+for curl in bb:
+    result = run_curl(curl)
+    if result:
+        try:
+            token = json.loads(result).get("token")
+            if token:
+                user_one_token_for_permission_check = token
+        except json.JSONDecodeError:
+            print("[경고] JSON 파싱 실패:", result)
+
+
 curl_list_need_token_no_premission = [
 '''#새로운 유저 등록 실패 (권한 없음)\n
     curl -X 'POST' \\
@@ -422,7 +509,13 @@ curl_list_need_token_no_premission = [
     curl -X 'DELETE' \\
     'http://127.0.0.1:8000/KU/Crew/1/Me' \\
     -H 'accept: application/json' \\
+    -H 'Content-Type: application/json' \\ ''',
+'''#user탈퇴 성공 \n
+    curl -X 'DELETE' \\
+    'http://127.0.0.1:8000/KU/User/Me' \\
+    -H 'accept: application/json' \\
     -H 'Content-Type: application/json' \\ '''
+
 ]
 
 curl_list_have_token_no_premission = []
