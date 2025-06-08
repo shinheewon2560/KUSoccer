@@ -19,7 +19,7 @@ def get_post_list(response : Response, page_num : int, db : Session = Depends(ge
 #개시물 객체 출력
 @router.get("/")
 def get_post_by_id(post_num : int, response : Response, db : Session = Depends(get_DB)):
-    _result = post_crud.get_post_by_id_from_db(post_num,db)
+    _result = post_crud.get_post_from_db(post_num,db)
     response.status_code = status.HTTP_200_OK
     return _result
 

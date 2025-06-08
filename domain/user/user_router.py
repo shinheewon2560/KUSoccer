@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends,Response,status
 from sqlalchemy.orm import Session
-import os
 
 from models import User
 from database import get_DB

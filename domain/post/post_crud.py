@@ -24,13 +24,13 @@ def get_post_list_from_db(page_num : int, db : Session):
     number_of_post = 10
     skip = (page_num - 1) * number_of_post
     
-    post_list = db.query(Post).order_by(Post.index.asc()).offset(skip).limit(number_of_post).all()
+    post_list = db.query(Post).order_by(Post.id.asc()).offset(skip).limit(number_of_post).all()
     return post_list
 
-def get_post_by_id_from_db(post_num : int, db : Session):
+def get_post_from_db(post_num : int, db : Session):
     post_num = num_is_valid(post_num)
     
-    data = db.query(Post).filter(Post.index == post_num).first()
+    data = db.query(Post).filter(Post.id == post_num).first()
 
     if data is None:
         raise HTTPException(status_code = 404, detail = "해당 게시물을 찾을 수 없습니다.")
@@ -64,7 +64,7 @@ def modifing_post_in_db(request_user_id : int , post_num : int, request : post_s
     request_user_id = num_is_valid(request_user_id)
     post_num = num_is_valid(post_num)
 
-    patch_db = db.query(Post).filter(Post.index == post_num).first()
+    patch_db = db.query(Post).filter(Post.id == post_num).first()
     if patch_db is None:
         raise HTTPException(status_code = 404, detail = "해당 게시물을 찾을 수 없습니다.")
     
@@ -83,7 +83,7 @@ def modifing_post_in_db(request_user_id : int , post_num : int, request : post_s
 def delete_post_on_db(request_user_id : int, post_num : int, db : Session):
     request_user_id = num_is_valid(request_user_id)
 
-    data = db.query(Post).filter(Post.index == post_num).first()
+    data = db.query(Post).filter(Post.id == post_num).first()
 
     if data is None:
         raise HTTPException(status_code = 404, detail = "해당 게시물을 찾을 수 없습니다.")
@@ -94,7 +94,7 @@ def delete_post_on_db(request_user_id : int, post_num : int, db : Session):
     deleted_data = DeletedPost(
         title = data.title,
         content = data.content,
-        post_num = data.index,
+        post_num = data.id,
         post_user_id = data.post_user_id,
         deleted_on = datetime.now()
     )

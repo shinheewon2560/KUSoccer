@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 
 """
     Unit schema
@@ -23,10 +23,11 @@ class CrewSummary(BaseModel):
 class MatchSummary(BaseModel):
     id : int
     when : str
-    Where : str
-
-    request_match : List[CrewSummary]
-    opponent_match : List[CrewSummary]
+    where : str
+    
+    #단일한 객체들 (갯수 1개)를 반환하니 optional로 받음
+    request_crew : Optional[CrewSummary]
+    opponent_crew : Optional[CrewSummary]
 
     class Config:
         from_attributes = True

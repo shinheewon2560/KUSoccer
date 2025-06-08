@@ -514,7 +514,38 @@ curl_list_need_token_no_premission = [
     curl -X 'DELETE' \\
     'http://127.0.0.1:8000/KU/User/Me' \\
     -H 'accept: application/json' \\
-    -H 'Content-Type: application/json' \\ '''
+    -H 'Content-Type: application/json' \\ ''',
+'''#match 생성 성공\n
+    curl -X 'POST' \\
+    'http://127.0.0.1:8000/KU/Match/Duel/' \\
+    -H 'accept: application/json' \\
+    -H 'Content-Type: application/json' \\
+    -d '{
+    "title": "string",
+    "content": "string",
+    "when": "string",
+    "where": "string",
+    "request_crew_id": 1,
+    "opponent_crew_name": "string"
+}' ''',
+'''#match 수락 성공\n
+    curl -X 'POST' \\
+    'http://127.0.0.1:8000/KU/Match/Accept/' \\
+    -H 'accept: application/json' \\
+    -H 'Content-Type: application/json' \\
+    -d '{
+  "match_id": 3,
+  "accept_crew_id": 1
+}' ''',
+'''#match 삭제 성공\n
+    curl -X 'DELETE' \\
+    'http://127.0.0.1:8000/KU/Match/1' \\
+    -H 'accept: application/json' \\
+    -H 'Content-Type: application/json' \\
+    -d '{
+  "match_id": 3,
+  "accept_crew_id": 1
+}' ''',
 
 ]
 
@@ -583,15 +614,7 @@ curl -X POST \
 
 
 
-curl -X 'POST' \
-    'http://127.0.0.1:8000/KU/Crew/' \
-    -H 'accept: application/json' \
-    -H 'Content-Type: application/json' \
-    -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwidXNlcl9uYW1lIjoic3RyaW5nIiwiZXhwIjoxNzQ5MzI3NzQ4fQ.UMeUYgK7zZtDa_xWuv3HCWhXsifT8GFpghKNHS9aR64' \
-    -d '{
-    "crew_name": "test",
-    "description": "string"
-    }' 
+
 
 
 curl -X 'GET' \
@@ -623,13 +646,16 @@ curl -X 'GET' \
     }' 
     
 
-curl -X 'POST' \
-    'http://127.0.0.1:8000/KU/User/SignIn' \
+curl -X 'DELETE' \
+    'http://127.0.0.1:8000/KU/Match/1' \
     -H 'accept: application/json' \
     -H 'Content-Type: application/json' \
+    -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1IiwidXNlcl9uYW1lIjoic3RyaW5nIiwicGFzc3dvcmRfdmVyaWZpZWQiOnRydWUsImV4cCI6MTc0OTM4ODYyN30.5spQ5jbv90M2sMnoMaKutPIZ32tbjRzGUygnmBnHshw' \
     -d '{
   "e_mail": "string",
   "password" : "string"
 }'
+
+
 
 """

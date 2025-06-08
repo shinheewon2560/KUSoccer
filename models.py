@@ -30,7 +30,6 @@ class User(Base):
     #역참조가 가능하도록 해서 특정 user row를 참조하고 있는 모든 crew row를 참조할 수 있게 만듬 (중간table로 구현)
     #back_populates는 자기를 참조하는 column이 아니라 relationship을 지정해 줘야함
     joined_crews = relationship("Crew", secondary = user_crew_table, back_populates = "members",passive_deletes=True)
-
     leading_crews = relationship("Crew", back_populates = "leader")
 
     user_post = relationship("Post", back_populates = "post_user")
@@ -39,7 +38,7 @@ class User(Base):
 class Post(Base):
     __tablename__ = "post"
 
-    index = Column(Integer, primary_key=True, index  = True)
+    id = Column(Integer, primary_key=True, index  = True)
 
     title = Column(String, nullable = False)
     when = Column(String)
@@ -87,7 +86,7 @@ class Crew(Base):
 
     id = Column(Integer, primary_key = True, index = True)
 
-    crew_name = Column(String, nullable = False)
+    crew_name = Column(String, nullable = False, index = True)
     description = Column(String)
 
     #crew -> user 연결 (단방향연결/ N:1)
@@ -111,8 +110,10 @@ class Match(Base):
 
     id = Column(Integer, primary_key = True, index = True)
 
+    title = Column(String, nullable = False)
+    content = Column(String)
     request_crew_id = Column(Integer, ForeignKey("crew.id",ondelete="CASCADE"), nullable = False)
-    opponent_crew_id = Column(Integer,ForeignKey("crew.id",ondelete="CASCADE"), nullable = False)
+    opponent_crew_id = Column(Integer,ForeignKey("crew.id",ondelete="CASCADE"), nullable = True)
 
     when = Column(String)
     where = Column(String)
