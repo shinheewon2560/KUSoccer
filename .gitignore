@@ -1,0 +1,4 @@
+__pycache__/
+KU.db
+control_unit/
+domain/**/__pycache__/
