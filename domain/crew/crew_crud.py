@@ -7,20 +7,22 @@ from fastapi import HTTPException
 #status code 반환을 위한 lib
 from datetime import datetime
 #data중에 시간을 표시하기 위함
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import selectinload
 #sqllite로 DB를 구현
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Crew,User
+from models import Crew,User,user_crew_apply_table
 #DB속 table을 models 파일에 설정해 뒀으니 table참조를 위해 
 from domain.crew import crew_schema
 #schema를 통해 input, output을 조정하니
+from sqlalchemy import select
 
 
 """
     essential function (router에 직접 쓰이는 함수가 아님 / 반복적으로 쓰이는 흐음을 편히하기 위해, 단위 테스트를 용이하게 하기 위해 이렇게 작성)
 """
 
-def check_str_vaild(data : str) -> str:
+def check_str_valid(data : str) -> str:
     if not data or data == "":
         raise HTTPException(status_code = 400, detail = "잘못된 응답입니다.")
     return data
@@ -29,33 +31,38 @@ def check_str_vaild(data : str) -> str:
     router function
 """
 
-
-def create_crew_in_db(request : crew_schema.CreateCrewRequest, request_user_id : int, db : Session):
-    crew_name = check_str_vaild(request.crew_name)
-
-    if db.query(Crew).filter(Crew.crew_name == crew_name).first():
-        raise HTTPException(status_code = 202, detail = "이미 존재하는 팀 이름입니다.")
+async def create_crew_in_db(request : crew_schema.CreateCrewRequest, request_user_id : int, db : AsyncSession):
+    crew_name = check_str_valid(request.crew_name)
+    crew_query = select(Crew).filter(Crew.crew_name == crew_name)
+    crew_result = await db.execute(crew_query)
+    crew_data = crew_result.scalars().first()
+    if crew_data:
+        raise HTTPException(status_code = 409, detail = "이미 존재하는 팀 이름입니다.")
     
-    crew_leader_row = db.query(User).filter(User.id == request_user_id).first()
-    if crew_leader_row is None:
+    leader_query = select(User).filter(User.id == request_user_id)
+    leader_result = await db.execute(leader_query)
+    leader_row = leader_result.scalars().first()
+
+    if leader_row is None:
         raise HTTPException(status_code = 403, detail = "잘못된 접근입니다.")
     
     new_crew_data = Crew(
         crew_name = request.crew_name,
         description = request.description,
-        leader_id = request_user_id,
-
         create_on = datetime.now()
     )
-
     db.add(new_crew_data)
-    db.commit()
+    
+    new_crew_data.leaders.append(leader_row)
+    await db.commit()
 
     return {"message" : "성공적으로 등록 되었습니다."}
 
 
-def get_info_in_db(id : int, db : Session):
-    crew_row = db.query(Crew).filter(Crew.id == id).first()
+async def get_info_in_db(id : int, db : AsyncSession):
+    query = select(Crew).options(selectinload(Crew.members),selectinload(Crew.opponent_match),selectinload(Crew.request_match)).filter(Crew.id == id)
+    result = await db.execute(query)
+    crew_row = result.scalars().first()
 
     if crew_row is None:
         raise HTTPException(status_code = 404, detail = "존재하지 않는 페이지입니다.")
@@ -64,33 +71,40 @@ def get_info_in_db(id : int, db : Session):
 
     return _return
 
-def add_member_in_db(crew_id : int, user_email : str, request_user_id : int, db : Session):
-    crew_row = db.query(Crew).filter(Crew.id == crew_id).first()
+async def add_member_in_db(crew_id : int, user_email : str, request_user_id : int, db : AsyncSession):
+    crew_query = select(Crew).filter(Crew.id == crew_id)
+    crew_result = await db.execute(crew_query)
+    crew_row = crew_result.scalars().first()
     if crew_row is None:
         raise HTTPException(status_code = 404, detail = "팀을 찾을 수 없습니다.")
     
-    if crew_row.leader_id != request_user_id:
-        raise HTTPException(status_code = 403, detail = "팀원 추가 권한은 리더에게만 있습니다.")
+    for leader in crew_row.leaders:
+        if leader.id != request_user_id:
+            raise HTTPException(status_code = 403, detail = "팀원 추가 권한은 리더에게만 있습니다.")
     
-    user_row = db.query(User).filter(User.e_mail == user_email).first()
+    user_query = select(User).filter(User.e_mail == user_email)
+    user_result = await db.execute(user_query)
+    user_row = user_result.scalars().first()
     if user_row is None:
         raise HTTPException(status_code = 404, detail = "유저가 존재하지 않습니다.")
     
     if user_row in crew_row.members:
-        raise HTTPException(status_code=202, detail="이미 존재하는 팀원입니다.")
+        raise HTTPException(status_code = 409, detail="이미 존재하는 팀원입니다.")
     
     crew_row.members.append(user_row)
 
-    db.commit()
+    await db.commit()
     return {"message" : f"{user_row.user_name}님을 성공적으로 등록하였습니다."}
 
 
-def delete_member_by_leader_in_db(crew_id : int, user_email : str, request_user_id : int, db : Session):
-    crew_row = db.query(Crew).filter(Crew.id == crew_id).first()
+async def delete_member_by_leader_in_db(crew_id : int, user_email : str, request_user_id : int, db : AsyncSession):
+    crew_query = select(Crew).filter(Crew.id == crew_id)
+    crew_result = await db.execute(crew_query)
+    crew_row = crew_result.scalars().first()
     if crew_row is None:
         raise HTTPException(status_code = 404, detail = "팀을 찾을 수 없습니다.")
     
-    if crew_row.leader_id != request_user_id:
+    if request_user_id not in [leader.id for leader in crew_row.leaders]:
         raise HTTPException(status_code = 403, detail = "팀원 삭제는 리더만 가능합니다.")
     
     for user in crew_row.members:
@@ -98,31 +112,91 @@ def delete_member_by_leader_in_db(crew_id : int, user_email : str, request_user_
             #왜 이런식으로 되는지 확인
             #-> 아마 list형으로 했기에 가능(?)
             crew_row.members.remove(user)
-            db.commit()
-            return {"message": "성공적으로 삭제했습니다."}
+            await db.commit()
         
     raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
     
-def delete_member_by_self_in_db(crew_id : int, request_user_id : int, db : Session):
-    crew_row = db.query(Crew).filter(Crew.id == crew_id).first()
+async def delete_member_by_self_in_db(crew_id : int, request_user_id : int, db : AsyncSession):
+    crew_query = select(Crew).filter(Crew.id == crew_id)
+    crew_result = await db.execute(crew_query)
+    crew_row = crew_result.scalars().first()
     if crew_row is None:
         raise HTTPException(status_code = 404, detail = "찾을 수 없습니다.")
     
     for user in crew_row.members:
         if user.id == request_user_id:
             crew_row.members.remove(user)
-            db.commit()
-            return {"message" : "탈퇴가 완료되었습니다."}
+            await db.commit()
         
-    return {"message" : "본인은 팀의 멤버가 아닙니다."}
+    raise HTTPException(status_code = 403, detail = "당신은 이 팀의 맴버가 아닙니다.")
 
 
-def delete_crew_in_db(crew_id : int, request_user_id : int, db : Session):
-    crew_row = db.query(Crew).filter(Crew.id == crew_id).first()
+async def delete_crew_in_db(crew_id : int, request_user_id : int, db : AsyncSession):
+    crew_query = select(Crew).filter(Crew.id == crew_id)
+    crew_result = await db.execute(crew_query)
+    crew_row = crew_result.scalars().first()
     if crew_row is None:
         raise HTTPException(status_code = 404, detail = "찾을 수 없습니다.")
-    if crew_row.leader_id != request_user_id:
-        raise HTTPException(status_code = 403, detail = "팀 삭제는 리더만 가능합니다.")
-    db.delete(crew_row)
-    db.commit()
-    return {"message" : "성공적으로 삭제했습니다."}
+    for leader in crew_row.leaders:
+        if leader.id != request_user_id:
+            raise HTTPException(status_code = 403, detail = "팀 삭제는 리더만 가능합니다.")
+    await db.delete(crew_row)
+    await db.commit()
+
+async def apply_crew_in_db(crew_id : int, request_user_id : int , db : AsyncSession):
+    crew_query = select(Crew).filter(Crew.id == crew_id)
+    crew_result = await db.execute(crew_query)
+    crew_row = crew_result.scalars().first()
+    if crew_row is None:
+        raise HTTPException(status_code = 404, detail = "팀을 찾을 수 없습니다.")
+    
+    for user in crew_row.apply_user:
+        if user.id == request_user_id:
+            raise HTTPException(status_code= 409, detail = "이미 존재하는 팀원입니다.")
+    
+    user_query = select(Crew).filter(Crew.id == request_user_id)
+    user_result = await db.execute(user_query)
+    user_row = user_result.scalars().first()
+
+    crew_row.apply_user.append(user_row)
+    await db.commit()
+    return {"message": " 성공적으로 등록되었습니다."}
+
+async def accept_user_in_db(crew_id : int, request : crew_schema.CrewAcceptRequest, request_user_id : int , db : AsyncSession):
+    crew_query = select(Crew).outerjoin(Crew.leaders).filter(Crew.id == crew_id, User.id == request_user_id)
+    crew_result = await db.execute(crew_query)
+    crew_row = crew_result.scalars().first()
+    if crew_row is None:
+        raise HTTPException(status_code = 404, detail = "당신이 리더인 팀을 찾을 수 없습니다.")
+    
+    #테이블 객체에 접근할 때는 .c를 붙여서 해야함
+    #다른 것들은 모두 orm객체
+    apply_record = db.execute(user_crew_apply_table.select().where(user_crew_apply_table.c.crew_id == crew_id,user_crew_apply_table.c.user_id == request.user_id)).first()
+    if apply_record is None:
+        raise HTTPException(status_code = 404, detail = "요청을 찾을 수 없습니다.")
+    
+    user_query = select(User).filter(User.id == request_user_id)
+    user_result = await db.execute(user_query)
+    user_row = user_result.scalars().first()
+    if user_row is None:
+        raise HTTPException(status_code = 404, detail = "유저를 찾을 수 없습니다.")
+    
+    crew_row.apply_user.remove(user_row)
+
+    if request.answer == True:
+        crew_row.members.append(user_row)
+        message = "성공적으로 등록되었습니다."
+    else:
+        message = "성공적으로 거절되었습니다."
+
+    await db.commit()
+    return {"message": message}
+
+async def get_apply_list_in_db(crew_id : int, request_user_id : int, db : AsyncSession):
+    crew_query = select(Crew).outerjoin(Crew.leaders).filter(Crew.id == crew_id, User.id == request_user_id)
+    crew_result = await db.execute(crew_query)
+    crew_row = crew_result.scalars().first()
+    if crew_row is None:
+        raise HTTPException(status_code = 404, detail = "권한이 없습니다.")
+    
+    return crew_schema.ApplyInform.from_orm(crew_row)

@@ -22,8 +22,6 @@ def check_empty(v:str) -> str:
 class FormalRequest(BaseModel):
     title : str
     content : str
-    when : str
-    where : str
 
     #프로그램의 보안을 위한 처리
     #들어오면 안되는 값을 오류로 처리하기 위함

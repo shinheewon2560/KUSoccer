@@ -43,6 +43,9 @@ class CreateCrewRequest(BaseModel):
 class UserEmail(BaseModel):
     e_mail : str
 
+class CrewAcceptRequest(BaseModel):
+    user_id : int
+    answer : bool
     
 """
     Response schema
@@ -52,11 +55,17 @@ class CrewInformation(BaseModel):
     crew_name : str
     description : str
     
-    leader : UserSummary
+    leaders : list[UserSummary] = Field(default_factory=list)
     members : list[UserSummary] = Field(default_factory=list)
 
     request_match : List[MatchSummary] = Field(default_factory=list)
     opponent_match : List[MatchSummary] = Field(default_factory=list)
 
     class Config:
-        from_attributes =True
+        from_attributes = True
+
+class ApplyInform(BaseModel):
+    apply_user : list[UserSummary] = Field(default_factory=list)
+
+    class Config:
+        from_attributes = True

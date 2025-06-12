@@ -3,11 +3,26 @@ from sqlalchemy.orm import relationship
 
 from database import Base
 
+user_crew_apply_table = Table(
+    "user_crew_apply",
+    Base.metadata,
+    #이런식으로 primary key를 설정하면 저 조합이 유일해짐
+    Column("user_id",Integer, ForeignKey("user.id", ondelete="CASCADE"),primary_key=True),
+    Column("crew_id",Integer, ForeignKey("crew.id", ondelete="CASCADE"),primary_key=True)
+)
+
 user_crew_table = Table(
     "user_crew",
     Base.metadata,
     Column("user_id", Integer, ForeignKey("user.id",ondelete="CASCADE"),primary_key = True),
     Column("crew_id", Integer, ForeignKey("crew.id",ondelete="CASCADE"), primary_key = True)
+)
+
+leader_crew_table = Table(
+    "leader_crew_table",
+    Base.metadata,
+    Column("leader_id", Integer, ForeignKey("user.id",ondelete="CASCADE"),primary_key=True),
+    Column("crew_id", Integer,ForeignKey("crew.id",ondelete="CASCADE"),primary_key=True)
 )
 
 #사용자 정보 담기
@@ -30,7 +45,8 @@ class User(Base):
     #역참조가 가능하도록 해서 특정 user row를 참조하고 있는 모든 crew row를 참조할 수 있게 만듬 (중간table로 구현)
     #back_populates는 자기를 참조하는 column이 아니라 relationship을 지정해 줘야함
     joined_crews = relationship("Crew", secondary = user_crew_table, back_populates = "members",passive_deletes=True)
-    leading_crews = relationship("Crew", back_populates = "leader")
+    leading_crews = relationship("Crew", secondary= leader_crew_table ,back_populates = "leaders", passive_deletes=True)
+    apply_crew = relationship("Crew", secondary = user_crew_apply_table, back_populates="apply_user",passive_deletes=True )
 
     user_post = relationship("Post", back_populates = "post_user")
 
@@ -41,8 +57,6 @@ class Post(Base):
     id = Column(Integer, primary_key=True, index  = True)
 
     title = Column(String, nullable = False)
-    when = Column(String)
-    where = Column(String)
     content = Column(Text, nullable = False)
 
     #post -> user 연결 (단방향 연결 / N:1)
@@ -89,14 +103,13 @@ class Crew(Base):
     crew_name = Column(String, nullable = False, index = True)
     description = Column(String)
 
-    #crew -> user 연결 (단방향연결/ N:1)
-    #여러 crew들이 하나의 user을 참조가능함 
-    leader_id = Column(Integer, ForeignKey("user.id"), nullable = False)
-    leader = relationship("User", foreign_keys = [leader_id], back_populates = "leading_crews")
+    #crew <-> user 연결 (단방향연결/ N:N)
+    leaders = relationship("User", secondary = leader_crew_table , back_populates = "leading_crews", passive_deletes=True, lazy="selectin")
 
     #crew <-> user 연결 (쌍방향연결 / N:N)
     #중간 테이블을 이용해서 연결(새로운 테이블 생성)
-    members = relationship("User", secondary = user_crew_table, back_populates = "joined_crews", passive_deletes=True)
+    members = relationship("User", secondary = user_crew_table, back_populates = "joined_crews", passive_deletes=True, lazy="selectin")
+    apply_user = relationship("User",secondary=user_crew_apply_table, back_populates="apply_crew", passive_deletes=True, lazy="selectin")
 
     #crew <- match 연결 (단방향 연결 / 1:N  2개)
     #
@@ -118,5 +131,5 @@ class Match(Base):
     when = Column(String)
     where = Column(String)
 
-    request_crew = relationship("Crew",foreign_keys = [request_crew_id], back_populates = "request_match",passive_deletes=True)
-    opponent_crew =relationship("Crew",foreign_keys = [opponent_crew_id], back_populates = "opponent_match",passive_deletes=True)
+    request_crew = relationship("Crew",foreign_keys = [request_crew_id], back_populates = "request_match",passive_deletes=True, lazy="selectin")
+    opponent_crew =relationship("Crew",foreign_keys = [opponent_crew_id], back_populates = "opponent_match",passive_deletes=True, lazy="selectin")
