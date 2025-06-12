@@ -35,11 +35,15 @@ class MatchSummary(BaseModel):
 """
     Request schema
 """
-class CreateCrewRequest(BaseModel):
+class CrewRequest(BaseModel):
     crew_name : str
     description : str
 
+class CreateCrewRequest(CrewRequest):
+    pass
 
+class ModifyCrewRequest(CrewRequest):
+    pass
 class UserEmail(BaseModel):
     e_mail : str
 

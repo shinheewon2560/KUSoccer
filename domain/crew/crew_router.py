@@ -38,6 +38,20 @@ async def apply_crew(response : Response, crew_id : int, request_user_id : int =
 """
     #리더 전용 url
 """
+@router.post("/{crew_id}/Leader/leader",status_code = 201)
+async def add_leader(crew_id : int , request : crew_schema.UserEmail, request_user_id : int = Depends(get_id_from_token), db : AsyncSession = Depends(get_DB)):
+    _result = await crew_crud.add_leader_in_db(crew_id, request, request_user_id, db)
+    return _result
+
+@router.delete("/{crew_id}/Leader/leader",status_code = 204)
+async def delete_leader(crew_id : int , request_user_id : int = Depends(get_id_from_token), db : AsyncSession = Depends(get_DB)):
+    await crew_crud.delete_leader_in_db(crew_id,request_user_id, db)
+
+@router.put("/{crew_id}/Leader/Profile", status_code= 200)
+async def modify_crew_profile(crew_id : int, request : crew_schema.ModifyCrewRequest, request_user_id : int = Depends(get_id_from_token), db : AsyncSession = Depends(get_DB)):
+    _result = await crew_crud.modify_crew_profile_in_db(crew_id,request,request_user_id,db)
+    return _result
+
 @router.get("/{crew_id}/Leader/Apply")
 async def get_apply_list(response : Response, crew_id : int, request_user_id : int = Depends(get_id_from_token), db : AsyncSession = Depends(get_DB)):
     _result = await crew_crud.get_apply_list_in_db(crew_id, request_user_id, db)
@@ -50,14 +64,13 @@ async def accept_user(response : Response, crew_id : int, request : crew_schema.
     response.status_code = status.HTTP_201_CREATED
     return _result
 
-@router.post("/{crew_id}/Leader/Member")
+@router.post("/{crew_id}/Leader/member")
 async def add_member(response : Response, crew_id : int, request : crew_schema.UserEmail, request_user_id : int = Depends(get_id_from_token), db : AsyncSession = Depends(get_DB)):
     _result = await crew_crud.add_member_in_db(crew_id,request.e_mail,request_user_id, db)
     response.status_code = status.HTTP_201_CREATED
     return _result
 
-
-@router.delete("/{crew_id}/Leader/Member")
+@router.delete("/{crew_id}/Leader/member")
 async def delete_member_by_leader(response : Response, crew_id : int, request : crew_schema.UserEmail , request_user_id : int = Depends(get_id_from_token), db : AsyncSession = Depends(get_DB)):
     await crew_crud.delete_member_by_leader_in_db(crew_id, request.e_mail, request_user_id, db)
     response.status_code = status.HTTP_204_NO_CONTENT

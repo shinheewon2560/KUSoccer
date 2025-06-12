@@ -3,24 +3,24 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 #foreignkey생성을 위함
-from sqlalchemy import event
-from sqlalchemy.engine import Engine
+from sqlalchemy import event, text
 import sqlite3
 
 #DB위치 설정
 #이걸 engine에 전달해 줘야함 (DB생성, 연결을 위해서)
 #앞에 데이터베이스 명시를 해줘야함 (DB랑 드라이버까지)
-SQLALCHMY_DATABASE_URL = "sqlite+aiosqlite:///./KU.db"
+SQLALCHMY_DATABASE_URL = "sqlite+aiosqlite:///./KU.db?check_same_thread=False&foreign_keys=on"
 
 
 engine = create_async_engine(
     SQLALCHMY_DATABASE_URL, 
     #single_thread로 작동하는 것을 멈추기 위해(비동기 추가를 위해서)
-    connect_args={"check_same_thread":False}
+    connect_args={"check_same_thread":False, "uri": True},
+    pool_pre_ping=True
 )
 
 # SQLite 외래 키 제약 조건 활성화
-@event.listens_for(Engine, "connect")
+@event.listens_for(engine.sync_engine, "connect", once = True)
 def set_sqlite_pragma(dbapi_connection, connection_record):
     if isinstance(dbapi_connection, sqlite3.Connection):  # SQLite일 경우만 해당 작동을 하도록 드라이버로 설정
         cursor = dbapi_connection.cursor()

@@ -70,13 +70,15 @@ class Post(Base):
 
 
 #운영자 정보 담기
-class Operator(Base):
-    __tablename__ = "operator"
+class Admin(Base):
+    __tablename__ = "admin"
 
     id = Column(Integer, primary_key=True)
+    hash = Column(String, nullable = False)
+    salt = Column(String, nullable = False)
 
     name = Column(String, nullable = False)
-    description = Column(Text , nullable = False)
+    e_mail = Column(String, nullable = False)
     contact_info = Column(String)
 
     create_on = Column(DateTime)
@@ -113,8 +115,8 @@ class Crew(Base):
 
     #crew <- match 연결 (단방향 연결 / 1:N  2개)
     #
-    request_match = relationship("Match", back_populates = "request_crew", foreign_keys = lambda : [Match.request_crew_id])
-    opponent_match = relationship("Match", back_populates = "opponent_crew", foreign_keys = lambda : [Match.opponent_crew_id])
+    request_match = relationship("Match", back_populates = "request_crew", foreign_keys = lambda : [Match.request_crew_id], cascade="all, delete-orphan")
+    opponent_match = relationship("Match", back_populates = "opponent_crew", foreign_keys = lambda : [Match.opponent_crew_id], cascade="all, delete-orphan")
 
     create_on = Column(DateTime)
 
@@ -126,7 +128,7 @@ class Match(Base):
     title = Column(String, nullable = False)
     content = Column(String)
     request_crew_id = Column(Integer, ForeignKey("crew.id",ondelete="CASCADE"), nullable = False)
-    opponent_crew_id = Column(Integer,ForeignKey("crew.id",ondelete="CASCADE"), nullable = True)
+    opponent_crew_id = Column(Integer,ForeignKey("crew.id",ondelete="CASCADE"))
 
     when = Column(String)
     where = Column(String)
