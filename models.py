@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Table, Boolean
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -91,7 +91,7 @@ class DeletedPost(Base):
 
     title = Column(String, nullable = False)
     content = Column(Text, nullable = False)
-    post_num = Column(Integer,nullable= False)
+    post_num = Column(Integer,nullable = False)
     post_user_id = Column(Integer, nullable = False)
 
     deleted_on = Column(DateTime, nullable = False)
@@ -103,8 +103,8 @@ class Crew(Base):
     id = Column(Integer, primary_key = True, index = True)
 
     crew_name = Column(String, nullable = False, index = True)
-    description = Column(String)
-
+    description = Column(String, default = "잘부탁 드립니다.")
+    score = Column(Integer, nullable = False, default = 0)
     #crew <-> user 연결 (단방향연결/ N:N)
     leaders = relationship("User", secondary = leader_crew_table , back_populates = "leading_crews", passive_deletes=True, lazy="selectin")
 
@@ -129,9 +129,23 @@ class Match(Base):
     content = Column(String)
     request_crew_id = Column(Integer, ForeignKey("crew.id",ondelete="CASCADE"), nullable = False)
     opponent_crew_id = Column(Integer,ForeignKey("crew.id",ondelete="CASCADE"))
+    match_result_id = Column(Integer, ForeignKey("matchresult.id",ondelete="CASCADE"), nullable=False)
+    status = Column(String, default= "wait")
 
     when = Column(String)
     where = Column(String)
 
+    match_result = relationship("MatchResult", foreign_keys=[match_result_id], back_populates="match",passive_deletes=True)
     request_crew = relationship("Crew",foreign_keys = [request_crew_id], back_populates = "request_match",passive_deletes=True, lazy="selectin")
-    opponent_crew =relationship("Crew",foreign_keys = [opponent_crew_id], back_populates = "opponent_match",passive_deletes=True, lazy="selectin")
+    opponent_crew = relationship("Crew",foreign_keys = [opponent_crew_id], back_populates = "opponent_match",lazy="selectin")
+
+class MatchResult(Base):
+    __tablename__ = "matchresult"
+
+    id = Column(Integer, primary_key=True)
+    win_crew = Column(Integer, ForeignKey("crew.id"))
+    lose_crew = Column(Integer,ForeignKey("crew.id"))
+    draw = Column(Boolean, default=False)
+    match = relationship("Match",back_populates="match_result",passive_deletes=True, cascade="all, delete-orphan")
+    request_crew_result = Column(String)
+    opponent_crew_result = Column(String)

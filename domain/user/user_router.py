@@ -56,3 +56,5 @@ async def modify_info(response : Response, request : user_schema.UserUpdate, req
 async def delete_user(response : Response, request_user_id : int = Depends(user_crud.get_id_from_doubly_verified_token), db : AsyncSession = Depends(get_DB)):
     await user_crud.delete_user_in_db(request_user_id, db)
     response.status_code = status.HTTP_204_NO_CONTENT
+
+#test

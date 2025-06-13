@@ -33,6 +33,13 @@ async def get_match(response : Response, match_num : int,  db : AsyncSession = D
     response.status_code = status.HTTP_200_OK
     return _result
 
+
+#request를 win, lose, draw로 한정함
+@router.post("/List/{match_num}", status_code=200)
+async def end_match(match_num : int, request : match_schema.MatchEndRequest, db : AsyncSession = Depends(get_DB)):
+    _result = await match_crud.end_match_in_db(request, match_num, db)
+    return _result
+
 @router.delete("/{match_num}")
 async def delete_post(match_num : int, response : Response, request_user_id : int = Depends(get_id_from_token), db : AsyncSession = Depends(get_DB)):
     await match_crud.delete_match_on_db(request_user_id,match_num, db)
