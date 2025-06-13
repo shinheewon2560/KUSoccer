@@ -1,9 +1,12 @@
 from fastapi import HTTPException, Header, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select, exists
 from models import User
 from domain.user import user_schema
+from domain.security import bearer_scheme
 
 import os
 import random, string
@@ -44,10 +47,16 @@ def create_token(payload : dict, exp_delta : timedelta):
     encoded_jwt = jwt.encode(data,secret_key,algorithm=alg)
     return encoded_jwt
 
-def get_jwt(authorization : str = Header(...)) -> str:
-    scheme, _, token = authorization.partition(" ")
-    if scheme.lower() != "bearer":
-        raise HTTPException(status_code = 401, detail="Bearer 토큰이 필요합니다.")
+
+# HTTPAuthorizationCredentials를 직접 받도록 변경합니다.
+# 이 함수는 이제 'Authorization: Bearer <token>' 전체를 파싱하는 대신,
+# HTTPBearer 스키마가 미리 파싱해준 credentials 객체를 받습니다.
+def get_jwt(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> str:
+    # credentials.credentials 속성에 실제 토큰 문자열이 들어있습니다.
+    # credentials.scheme 속성에는 "bearer"가 들어있습니다.
+    token = credentials.credentials
+    # HTTPBearer 자체가 이미 "Bearer " 접두사 유무 및 scheme 확인을 합니다.
+    # 따라서 scheme.lower() != "bearer" 체크는 더 이상 필요하지 않습니다.
     return token
 
 def decode_token(token : str = Depends(get_jwt)):

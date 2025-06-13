@@ -25,7 +25,7 @@ async def get_post_by_id(post_num : int, response : Response, db : AsyncSession 
 
 #개시물 추가
 @router.post("/")
-async def add_post(request : post_schema.PostRequest,response: Response,request_user_id : int = Depends(get_id_from_token), db : AsyncSession = Depends(get_DB)):
+async def add_post(request : post_schema.PostRequest,response : Response, request_user_id : int = Depends(get_id_from_token), db : AsyncSession = Depends(get_DB)):
     _result = await post_crud.add_post_on_db(request_user_id, request, db)
     response.status_code = status.HTTP_201_CREATED
     return _result

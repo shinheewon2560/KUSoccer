@@ -1,7 +1,4 @@
-from fastapi import APIRouter
-from fastapi import Response
-from fastapi import status
-from fastapi import Depends
+from fastapi import APIRouter,Response, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_DB
@@ -59,7 +56,7 @@ async def get_apply_list(response : Response, crew_id : int, request_user_id : i
     return _result
 
 @router.post("/{crew_id}/Leader/Accept")
-async def accept_user(response : Response, crew_id : int, request : crew_schema.CrewAcceptRequest, request_user_id : int = Depends(get_id_from_token), db : AsyncSession = Depends(get_DB)):
+async def accept_user(response : Response, crew_id : int, request : crew_schema.CrewAcceptRequest,request_user_id : int = Depends(get_id_from_token), db : AsyncSession = Depends(get_DB)):
     _result = await crew_crud.accept_user_in_db(crew_id,request, request_user_id, db)
     response.status_code = status.HTTP_201_CREATED
     return _result

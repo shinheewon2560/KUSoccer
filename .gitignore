@@ -3,3 +3,4 @@ KU.db
 control_unit/
 domain/**/__pycache__/
 .DS_Store
+.vscode
