@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 secret_key = os.getenv("JWT_SECRET")
 alg = os.getenv("ALGORITHM")
 exp_dalta =timedelta(days = 1)
+reAuth_delta = timedelta(minutes=30)
 
 #유효성 검사
 def check_it_valid(data : user_schema.UserInformation) -> dict:
@@ -148,7 +149,7 @@ async def check_password_in_db(password : str, payload : dict, db : AsyncSession
     if data.hash != hashing(password + data.salt):
         raise HTTPException(status_code = 403, detail = "비밀번호가 일치하지 않습니다.")
     payload["password_verified"] = True
-    token = create_token(payload, timedelta(minutes=5))
+    token = create_token(payload, reAuth_delta)
     return {"message" : "인증이 완료되었습니다.", "token" : f"{token}"}
 
 async def modify_info_in_db(request : user_schema.UserUpdate, user_id : int, db : AsyncSession):
@@ -179,7 +180,7 @@ async def get_user_profile_from_db(request_user_id : int , id : int , db : Async
     check_query = select(exists().where(User.id == request_user_id))
     check_result = await db.execute(check_query)
     if check_result.scalar() is None:
-        raise HTTPException(status_code = 403, detail = "잘못된 접근입니다")
+        raise HTTPException(status_code = 403, detail = "없는 유저입니다.")
     
     data_query = select(User).options(selectinload(User.joined_crews),selectinload(User.leading_crews)).filter(User.id == id)
     data_result = await db.execute(data_query)

@@ -60,7 +60,10 @@ async def create_crew_in_db(request : crew_schema.CreateCrewRequest, request_use
 
 
 async def get_info_in_db(id : int, db : AsyncSession):
-    query = select(Crew).options(selectinload(Crew.members),selectinload(Crew.opponent_match),selectinload(Crew.request_match)).filter(Crew.id == id)
+    # Crew과 직접 연결된 관계는 selectinload로 가져올 수 있지만,
+    # 관계의 하위 객체들(예: Crew → Match → Crew)은 자동으로 로딩되지 않음.
+    # 따라서 중첩 관계는 selectinload 체이닝으로 명시적으로 로딩해야 함.
+    query = select(Crew).options(selectinload(Crew.members),selectinload(Crew.request_match).selectinload(Match.opponent_crew),selectinload(Crew.opponent_match).selectinload(Match.request_crew),).filter(Crew.id == id)
     result = await db.execute(query)
     crew_row = result.scalars().first()
 
@@ -113,6 +116,7 @@ async def delete_member_by_leader_in_db(crew_id : int, user_email : str, request
             #-> 아마 list형으로 했기에 가능(?)
             crew_row.members.remove(user)
             await db.commit()
+            return None
         
     raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
     
@@ -150,11 +154,15 @@ async def apply_crew_in_db(crew_id : int, request_user_id : int , db : AsyncSess
     if crew_row is None:
         raise HTTPException(status_code = 404, detail = "팀을 찾을 수 없습니다.")
     
+    for user in crew_row.members:
+        if user.id == request_user_id:
+            raise HTTPException(status_code= 409, detail = "이미 지원한 팀입니다.")
+    
     for user in crew_row.apply_user:
         if user.id == request_user_id:
-            raise HTTPException(status_code= 409, detail = "이미 존재하는 팀원입니다.")
+            raise HTTPException(status_code= 409, detail = "이미 지원한 팀입니다.")
     
-    user_query = select(Crew).filter(Crew.id == request_user_id)
+    user_query = select(User).filter(User.id == request_user_id)
     user_result = await db.execute(user_query)
     user_row = user_result.scalars().first()
 
@@ -166,18 +174,21 @@ async def accept_user_in_db(crew_id : int, request : crew_schema.CrewAcceptReque
     crew_query = select(Crew).outerjoin(Crew.leaders).filter(Crew.id == crew_id, User.id == request_user_id)
     crew_result = await db.execute(crew_query)
     crew_row = crew_result.scalars().first()
+
     if crew_row is None:
         raise HTTPException(status_code = 404, detail = "당신이 리더인 팀을 찾을 수 없습니다.")
     
     #테이블 객체에 접근할 때는 .c를 붙여서 해야함
     #다른 것들은 모두 orm객체
-    apply_record = db.execute(user_crew_apply_table.select().where(user_crew_apply_table.c.crew_id == crew_id,user_crew_apply_table.c.user_id == request.user_id)).first()
+    apply_record_reslut = await db.execute(user_crew_apply_table.select().where(user_crew_apply_table.c.crew_id == crew_id,user_crew_apply_table.c.user_id == request.user_id))
+    apply_record = apply_record_reslut.scalar()
     if apply_record is None:
         raise HTTPException(status_code = 404, detail = "요청을 찾을 수 없습니다.")
     
-    user_query = select(User).filter(User.id == request_user_id)
+    user_query = select(User).filter(User.id == request.user_id)
     user_result = await db.execute(user_query)
     user_row = user_result.scalars().first()
+    print(user_row)
     if user_row is None:
         raise HTTPException(status_code = 404, detail = "유저를 찾을 수 없습니다.")
     
@@ -259,14 +270,8 @@ async def delete_leader_in_db(crew_id : int, request_user_id : int, db : AsyncSe
         raise HTTPException(status_code = 404, detail = "유저를 찾을 수 없습니다.")
 
     crew_row.leaders.remove(user_row)
-
+    await db.flush()
     if not crew_row.leaders:
-        """
-        delete_query = select(Match).where((Match.request_crew_id == crew_id) | (Match.opponent_crew_id == crew_id))
-        query_result = await db.execute(delete_query)
-        matches_to_delete = query_result.scalars().all()
-        for match in matches_to_delete:
-            await db.delete(match)"""
         await db.delete(crew_row)
 
     await db.commit()

@@ -116,7 +116,7 @@ class Crew(Base):
     #crew <- match 연결 (단방향 연결 / 1:N  2개)
     #
     request_match = relationship("Match", back_populates = "request_crew", foreign_keys = lambda : [Match.request_crew_id], cascade="all, delete-orphan")
-    opponent_match = relationship("Match", back_populates = "opponent_crew", foreign_keys = lambda : [Match.opponent_crew_id], cascade="all, delete-orphan")
+    opponent_match = relationship("Match", back_populates = "opponent_crew", foreign_keys = lambda : [Match.opponent_crew_id])
 
     create_on = Column(DateTime)
 
@@ -128,14 +128,12 @@ class Match(Base):
     title = Column(String, nullable = False)
     content = Column(String)
     request_crew_id = Column(Integer, ForeignKey("crew.id",ondelete="CASCADE"), nullable = False)
-    opponent_crew_id = Column(Integer,ForeignKey("crew.id",ondelete="CASCADE"))
-    match_result_id = Column(Integer, ForeignKey("matchresult.id",ondelete="CASCADE"), nullable=False)
+    opponent_crew_id = Column(Integer,ForeignKey("crew.id"))
     status = Column(String, default= "wait")
-
     when = Column(String)
     where = Column(String)
 
-    match_result = relationship("MatchResult", foreign_keys=[match_result_id], back_populates="match",passive_deletes=True)
+    match_result = relationship("MatchResult", back_populates="match",passive_deletes=True, cascade="all, delete-orphan",uselist=False)
     request_crew = relationship("Crew",foreign_keys = [request_crew_id], back_populates = "request_match",passive_deletes=True, lazy="selectin")
     opponent_crew = relationship("Crew",foreign_keys = [opponent_crew_id], back_populates = "opponent_match",lazy="selectin")
 
@@ -143,9 +141,10 @@ class MatchResult(Base):
     __tablename__ = "matchresult"
 
     id = Column(Integer, primary_key=True)
+    match_id = Column(Integer, ForeignKey("match.id",ondelete="CASCADE"), nullable=False)
     win_crew = Column(Integer, ForeignKey("crew.id"))
     lose_crew = Column(Integer,ForeignKey("crew.id"))
     draw = Column(Boolean, default=False)
-    match = relationship("Match",back_populates="match_result",passive_deletes=True, cascade="all, delete-orphan")
+    match = relationship("Match",foreign_keys=[match_id], back_populates="match_result",passive_deletes=True,uselist=False)
     request_crew_result = Column(String)
     opponent_crew_result = Column(String)
